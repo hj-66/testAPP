@@ -25,6 +25,8 @@ class MemoViewModel(
         private set
     var sort by mutableStateOf(MemoSort.UpdatedDesc)
         private set
+    var contentFontSizeSp by mutableStateOf(DEFAULT_CONTENT_FONT_SIZE_SP)
+        private set
 
     init {
         memos += repository.load()
@@ -133,6 +135,11 @@ class MemoViewModel(
         updateSelected(content = memo.content + separator + prefix + placeholder + suffix)
     }
 
+    fun insertEmoji(emoji: String) {
+        val memo = selectedMemo ?: return
+        updateSelected(content = memo.content + emoji)
+    }
+
     fun updateSearchQuery(value: String) {
         searchQuery = value
         keepSelectionVisible()
@@ -149,6 +156,18 @@ class MemoViewModel(
 
     fun updateSort(value: MemoSort) {
         sort = value
+    }
+
+    fun increaseContentFontSize() {
+        contentFontSizeSp = (contentFontSizeSp + CONTENT_FONT_SIZE_STEP_SP).coerceAtMost(MAX_CONTENT_FONT_SIZE_SP)
+    }
+
+    fun decreaseContentFontSize() {
+        contentFontSizeSp = (contentFontSizeSp - CONTENT_FONT_SIZE_STEP_SP).coerceAtLeast(MIN_CONTENT_FONT_SIZE_SP)
+    }
+
+    fun resetContentFontSize() {
+        contentFontSizeSp = DEFAULT_CONTENT_FONT_SIZE_SP
     }
 
     private fun replaceMemo(updated: Memo) {
@@ -170,5 +189,12 @@ class MemoViewModel(
     private fun Path.withTxtExtension(): Path {
         val filename = fileName.toString()
         return if (filename.endsWith(".txt", ignoreCase = true)) this else resolveSibling("$filename.txt")
+    }
+
+    companion object {
+        const val MIN_CONTENT_FONT_SIZE_SP = 12f
+        const val DEFAULT_CONTENT_FONT_SIZE_SP = 15f
+        const val MAX_CONTENT_FONT_SIZE_SP = 28f
+        private const val CONTENT_FONT_SIZE_STEP_SP = 1f
     }
 }

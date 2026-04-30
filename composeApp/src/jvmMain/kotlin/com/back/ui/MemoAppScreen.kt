@@ -3,6 +3,7 @@ package com.back.ui
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,6 +18,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -374,7 +376,7 @@ private fun MemoEditorPanel(
                 checked = memo.isFavorite,
                 onCheckedChange = { viewModel.toggleFavorite() },
             )
-            Text("즐겨찾기")
+            Text("즐겨찾기", color = MaterialTheme.colorScheme.onSurface)
             Spacer(Modifier.weight(1f))
             Text(
                 text = "수정됨 · ${memo.updatedAt.formatShort()}",
@@ -393,6 +395,11 @@ private fun MemoEditorPanel(
             onUnderline = { viewModel.insertMarkdown("<u>", "</u>", "밑줄") },
             onRed = { viewModel.insertMarkdown("<span style=\"color:red\">", "</span>", "빨간 글씨") },
             onBlue = { viewModel.insertMarkdown("<span style=\"color:blue\">", "</span>", "파란 글씨") },
+            fontSizeSp = viewModel.contentFontSizeSp,
+            onDecreaseFontSize = viewModel::decreaseContentFontSize,
+            onIncreaseFontSize = viewModel::increaseContentFontSize,
+            onResetFontSize = viewModel::resetContentFontSize,
+            onEmoji = viewModel::insertEmoji,
         )
 
         Spacer(Modifier.height(8.dp))
@@ -400,6 +407,7 @@ private fun MemoEditorPanel(
         if (markdownPreview) {
             MarkdownPreview(
                 content = memo.content,
+                fontSizeSp = viewModel.contentFontSizeSp,
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f),
@@ -409,6 +417,10 @@ private fun MemoEditorPanel(
                 value = memo.content,
                 onValueChange = { viewModel.updateSelected(content = it) },
                 label = { Text("내용") },
+                textStyle = TextStyle(
+                    color = MaterialTheme.colorScheme.onSurface,
+                    fontSize = viewModel.contentFontSizeSp.sp,
+                ),
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f),
@@ -443,8 +455,20 @@ private fun TextEditToolbar(
     onUnderline: () -> Unit,
     onRed: () -> Unit,
     onBlue: () -> Unit,
+    fontSizeSp: Float,
+    onDecreaseFontSize: () -> Unit,
+    onIncreaseFontSize: () -> Unit,
+    onResetFontSize: () -> Unit,
+    onEmoji: (String) -> Unit,
 ) {
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+    var emojiExpanded by remember { mutableStateOf(false) }
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
         OutlinedButton(onClick = onBold, modifier = Modifier.size(width = 46.dp, height = 38.dp)) {
             Text("B", fontWeight = FontWeight.Bold)
         }
@@ -460,7 +484,31 @@ private fun TextEditToolbar(
         OutlinedButton(onClick = onBlue, modifier = Modifier.size(width = 46.dp, height = 38.dp)) {
             Text("A", color = Color(0xFF1565C0), fontWeight = FontWeight.Bold)
         }
-        Spacer(Modifier.weight(1f))
+        OutlinedButton(onClick = onDecreaseFontSize, modifier = Modifier.size(width = 46.dp, height = 38.dp)) {
+            Text("A-", maxLines = 1)
+        }
+        OutlinedButton(onClick = onResetFontSize, modifier = Modifier.size(width = 58.dp, height = 38.dp)) {
+            Text("${fontSizeSp.toInt()}sp", maxLines = 1, fontSize = 12.sp)
+        }
+        OutlinedButton(onClick = onIncreaseFontSize, modifier = Modifier.size(width = 46.dp, height = 38.dp)) {
+            Text("A+", maxLines = 1)
+        }
+        Box {
+            OutlinedButton(onClick = { emojiExpanded = true }, modifier = Modifier.size(width = 46.dp, height = 38.dp)) {
+                Text("😊")
+            }
+            DropdownMenu(expanded = emojiExpanded, onDismissRequest = { emojiExpanded = false }) {
+                listOf("😊", "👍", "⭐", "✅", "🔥", "🎉", "💡", "📌").forEach { emoji ->
+                    DropdownMenuItem(
+                        text = { Text(emoji, fontSize = 20.sp) },
+                        onClick = {
+                            onEmoji(emoji)
+                            emojiExpanded = false
+                        },
+                    )
+                }
+            }
+        }
         Button(onClick = onToggleMarkdown) {
             Text(if (markdownPreview) "Markdown 비적용" else "Markdown 적용")
         }
@@ -468,7 +516,7 @@ private fun TextEditToolbar(
 }
 
 @Composable
-private fun MarkdownPreview(content: String, modifier: Modifier = Modifier) {
+private fun MarkdownPreview(content: String, fontSizeSp: Float, modifier: Modifier = Modifier) {
     LazyColumn(
         modifier = modifier
             .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(6.dp))
@@ -480,20 +528,20 @@ private fun MarkdownPreview(content: String, modifier: Modifier = Modifier) {
             val trimmed = line.trimStart()
             val (displayLine, style) = when {
                 trimmed.startsWith("# ") -> trimmed.removePrefix("# ") to TextStyle(
-                    fontSize = 24.sp,
+                    fontSize = (fontSizeSp + 9f).sp,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface,
                 )
                 trimmed.startsWith("## ") -> trimmed.removePrefix("## ") to TextStyle(
-                    fontSize = 20.sp,
+                    fontSize = (fontSizeSp + 5f).sp,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface,
                 )
                 trimmed.startsWith("- ") -> "• ${trimmed.removePrefix("- ")}" to TextStyle(
-                    fontSize = 15.sp,
+                    fontSize = fontSizeSp.sp,
                     color = MaterialTheme.colorScheme.onSurface,
                 )
-                else -> line to TextStyle(fontSize = 15.sp, color = MaterialTheme.colorScheme.onSurface)
+                else -> line to TextStyle(fontSize = fontSizeSp.sp, color = MaterialTheme.colorScheme.onSurface)
             }
             Text(text = renderInlineMarkdown(displayLine), style = style)
         }

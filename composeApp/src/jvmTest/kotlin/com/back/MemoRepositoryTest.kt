@@ -121,4 +121,28 @@ class MemoRepositoryTest {
             viewModel.selectedMemo?.content,
         )
     }
+
+    @Test
+    fun viewModelAdjustsContentFontSizeAndInsertsEmoji() {
+        val path = Files.createTempDirectory("memo-app-editor-tools-test").resolve("memos.json")
+        val viewModel = MemoViewModel(MemoRepository(path))
+
+        viewModel.createMemo()
+        viewModel.updateSelected(content = "기분")
+        viewModel.insertEmoji("😊")
+        viewModel.increaseContentFontSize()
+        viewModel.increaseContentFontSize()
+
+        assertEquals("기분😊", viewModel.selectedMemo?.content)
+        assertEquals(17f, viewModel.contentFontSizeSp)
+
+        repeat(20) { viewModel.decreaseContentFontSize() }
+        assertEquals(MemoViewModel.MIN_CONTENT_FONT_SIZE_SP, viewModel.contentFontSizeSp)
+
+        repeat(40) { viewModel.increaseContentFontSize() }
+        assertEquals(MemoViewModel.MAX_CONTENT_FONT_SIZE_SP, viewModel.contentFontSizeSp)
+
+        viewModel.resetContentFontSize()
+        assertEquals(MemoViewModel.DEFAULT_CONTENT_FONT_SIZE_SP, viewModel.contentFontSizeSp)
+    }
 }
