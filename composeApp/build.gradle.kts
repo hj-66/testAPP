@@ -38,7 +38,7 @@ compose.desktop {
 
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
-            packageName = "com.back"
+            packageName = "Memo_App_MacOS"
             packageVersion = "1.0.0"
         }
     }
