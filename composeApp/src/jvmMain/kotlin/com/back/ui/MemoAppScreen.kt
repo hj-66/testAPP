@@ -34,6 +34,7 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -48,8 +49,10 @@ import androidx.compose.ui.input.key.isMetaPressed
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
+import androidx.compose.ui.text.ExperimentalTextApi
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -332,6 +335,7 @@ private fun MemoEditorPanel(
 ) {
     val memo = viewModel.selectedMemo
     var markdownPreview by remember { mutableStateOf(false) }
+    val contentFontFamily = viewModel.contentFontFamily.toComposeFontFamily()
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -400,6 +404,9 @@ private fun MemoEditorPanel(
             onIncreaseFontSize = viewModel::increaseContentFontSize,
             onResetFontSize = viewModel::resetContentFontSize,
             onEmoji = viewModel::insertEmoji,
+            fontFamily = viewModel.contentFontFamily,
+            fontFamilies = MemoViewModel.CONTENT_FONT_FAMILIES,
+            onFontFamily = viewModel::updateContentFontFamily,
         )
 
         Spacer(Modifier.height(8.dp))
@@ -408,23 +415,27 @@ private fun MemoEditorPanel(
             MarkdownPreview(
                 content = memo.content,
                 fontSizeSp = viewModel.contentFontSizeSp,
+                fontFamily = contentFontFamily,
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f),
             )
         } else {
-            OutlinedTextField(
-                value = memo.content,
-                onValueChange = { viewModel.updateSelected(content = it) },
-                label = { Text("내용") },
-                textStyle = TextStyle(
-                    color = MaterialTheme.colorScheme.onSurface,
-                    fontSize = viewModel.contentFontSizeSp.sp,
-                ),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f),
-            )
+            key(viewModel.contentFontFamily) {
+                OutlinedTextField(
+                    value = memo.content,
+                    onValueChange = { viewModel.updateSelected(content = it) },
+                    label = { Text("내용") },
+                    textStyle = TextStyle(
+                        color = MaterialTheme.colorScheme.onSurface,
+                        fontSize = viewModel.contentFontSizeSp.sp,
+                        fontFamily = contentFontFamily,
+                    ),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
+                )
+            }
         }
 
         Spacer(Modifier.height(12.dp))
@@ -460,8 +471,12 @@ private fun TextEditToolbar(
     onIncreaseFontSize: () -> Unit,
     onResetFontSize: () -> Unit,
     onEmoji: (String) -> Unit,
+    fontFamily: String,
+    fontFamilies: List<String>,
+    onFontFamily: (String) -> Unit,
 ) {
     var emojiExpanded by remember { mutableStateOf(false) }
+    var fontExpanded by remember { mutableStateOf(false) }
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -494,6 +509,22 @@ private fun TextEditToolbar(
             Text("A+", maxLines = 1)
         }
         Box {
+            OutlinedButton(onClick = { fontExpanded = true }, modifier = Modifier.size(width = 86.dp, height = 38.dp)) {
+                Text(fontFamily, maxLines = 1, overflow = TextOverflow.Ellipsis, fontSize = 12.sp)
+            }
+            DropdownMenu(expanded = fontExpanded, onDismissRequest = { fontExpanded = false }) {
+                fontFamilies.forEach { family ->
+                    DropdownMenuItem(
+                        text = { Text(family, fontFamily = family.toComposeFontFamily()) },
+                        onClick = {
+                            onFontFamily(family)
+                            fontExpanded = false
+                        },
+                    )
+                }
+            }
+        }
+        Box {
             OutlinedButton(onClick = { emojiExpanded = true }, modifier = Modifier.size(width = 46.dp, height = 38.dp)) {
                 Text("😊")
             }
@@ -516,7 +547,7 @@ private fun TextEditToolbar(
 }
 
 @Composable
-private fun MarkdownPreview(content: String, fontSizeSp: Float, modifier: Modifier = Modifier) {
+private fun MarkdownPreview(content: String, fontSizeSp: Float, fontFamily: FontFamily, modifier: Modifier = Modifier) {
     LazyColumn(
         modifier = modifier
             .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(6.dp))
@@ -531,17 +562,24 @@ private fun MarkdownPreview(content: String, fontSizeSp: Float, modifier: Modifi
                     fontSize = (fontSizeSp + 9f).sp,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface,
+                    fontFamily = fontFamily,
                 )
                 trimmed.startsWith("## ") -> trimmed.removePrefix("## ") to TextStyle(
                     fontSize = (fontSizeSp + 5f).sp,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface,
+                    fontFamily = fontFamily,
                 )
                 trimmed.startsWith("- ") -> "• ${trimmed.removePrefix("- ")}" to TextStyle(
                     fontSize = fontSizeSp.sp,
                     color = MaterialTheme.colorScheme.onSurface,
+                    fontFamily = fontFamily,
                 )
-                else -> line to TextStyle(fontSize = fontSizeSp.sp, color = MaterialTheme.colorScheme.onSurface)
+                else -> line to TextStyle(
+                    fontSize = fontSizeSp.sp,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    fontFamily = fontFamily,
+                )
             }
             Text(text = renderInlineMarkdown(displayLine), style = style)
         }
@@ -654,4 +692,13 @@ private fun chooseSavePath(): Path? {
 private fun Instant.formatShort(): String {
     val formatter = DateTimeFormatter.ofPattern("MM/dd HH:mm").withZone(ZoneId.systemDefault())
     return formatter.format(this)
+}
+
+@OptIn(ExperimentalTextApi::class)
+private fun String.toComposeFontFamily(): FontFamily = when (this) {
+    "고딕" -> FontFamily("Apple SD Gothic Neo")
+    "명조" -> FontFamily("AppleMyungjo")
+    "Apple 고딕" -> FontFamily("AppleGothic")
+    "Arial Unicode" -> FontFamily("Arial Unicode MS")
+    else -> FontFamily("Apple SD Gothic Neo")
 }

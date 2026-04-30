@@ -145,4 +145,18 @@ class MemoRepositoryTest {
         viewModel.resetContentFontSize()
         assertEquals(MemoViewModel.DEFAULT_CONTENT_FONT_SIZE_SP, viewModel.contentFontSizeSp)
     }
+
+    @Test
+    fun viewModelChangesContentFontFamilyOnlyToSupportedValues() {
+        val path = Files.createTempDirectory("memo-app-font-family-test").resolve("memos.json")
+        val viewModel = MemoViewModel(MemoRepository(path))
+
+        assertEquals(MemoViewModel.DEFAULT_CONTENT_FONT_FAMILY, viewModel.contentFontFamily)
+
+        viewModel.updateContentFontFamily("명조")
+        assertEquals("명조", viewModel.contentFontFamily)
+
+        viewModel.updateContentFontFamily("지원하지 않는 글꼴")
+        assertEquals("명조", viewModel.contentFontFamily)
+    }
 }

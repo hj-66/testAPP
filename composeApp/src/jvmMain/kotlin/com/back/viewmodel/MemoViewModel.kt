@@ -27,6 +27,8 @@ class MemoViewModel(
         private set
     var contentFontSizeSp by mutableStateOf(DEFAULT_CONTENT_FONT_SIZE_SP)
         private set
+    var contentFontFamily by mutableStateOf(DEFAULT_CONTENT_FONT_FAMILY)
+        private set
 
     init {
         memos += repository.load()
@@ -170,6 +172,12 @@ class MemoViewModel(
         contentFontSizeSp = DEFAULT_CONTENT_FONT_SIZE_SP
     }
 
+    fun updateContentFontFamily(value: String) {
+        if (value in CONTENT_FONT_FAMILIES) {
+            contentFontFamily = value
+        }
+    }
+
     private fun replaceMemo(updated: Memo) {
         val index = memos.indexOfFirst { it.id == updated.id }
         if (index == -1) return
@@ -195,6 +203,8 @@ class MemoViewModel(
         const val MIN_CONTENT_FONT_SIZE_SP = 12f
         const val DEFAULT_CONTENT_FONT_SIZE_SP = 15f
         const val MAX_CONTENT_FONT_SIZE_SP = 28f
+        const val DEFAULT_CONTENT_FONT_FAMILY = "기본"
+        val CONTENT_FONT_FAMILIES = listOf(DEFAULT_CONTENT_FONT_FAMILY, "고딕", "명조", "Apple 고딕", "Arial Unicode")
         private const val CONTENT_FONT_SIZE_STEP_SP = 1f
     }
 }

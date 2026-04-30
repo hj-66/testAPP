@@ -37,9 +37,9 @@ compose.desktop {
         mainClass = "com.back.MainKt"
 
         nativeDistributions {
-            targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
+            targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb, TargetFormat.Exe)
             packageName = "Memo_App_MacOS"
-            packageVersion = "1.1.0"
+            packageVersion = "1.2.0"
         }
     }
 }
